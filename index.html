@@ -46,7 +46,7 @@
       <p class="hint">Hinweis: <strong>Bearbeite mit Hilfe dieses Programms die Aufgaben auf dem Arbeitsblatt.</strong></p>
 
       <div class="row">
-        <input id="itemInput" placeholder="Parameter" aria-label="Parameter für enqueue" />
+        <input id="itemInput" placeholder="ContentType pContent" aria-label="Parameter für enqueue" />
         <button class="primary" id="addBtn">enqueue</button>
         <button class="danger" id="deqBtn">dequeue</button>
         <button id="frontBtn" class="ghost">front</button>
@@ -122,15 +122,15 @@
     }
 
     function isEmpty(){
-      log(state.arr.length===0 ? 'isEmpty: true' : 'isEmpty: false');
+      log(state.arr.length===0 ? 'isEmpty(): true' : 'isEmpty(): false');
     }
 
     function front(){
       if(state.arr.length===0){
-        log('front: null');
+        log('front(): null');
         return;
       }
-      log(`front: ${state.arr[0]}`);
+      log(`front(): ${state.arr[0]}`);
     }
 
     function animateNew(){
