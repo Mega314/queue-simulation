@@ -101,23 +101,23 @@
     function enqueue(val){
       const v=(val && val.trim());
       if(!v){
-        log('❌ Error: Kein Parameter angegeben (enqueue abgebrochen).');
-        console.error('enqueue(): Kein Parameter angegeben – kein Einfügen in die Queue.');
+        // log('ERROR: Kein Parameter angegeben (enqueue abgebrochen)');
+        // console.error('enqueue(): Kein Parameter angegeben – kein Einfügen in die Queue.');
         return;
       }
       state.arr.push(v);
-      log(`enqueue: ${v}`);
+      log(`enqueue( ${v} )`);
       render();
       animateNew();
     }
 
     function dequeue(){
       if(state.arr.length===0){
-        log('⚠️ Queue ist leer.');
+        // log('⚠️ Queue ist leer.');
         return;
       }
       const v=state.arr.shift();
-      log(`dequeue → ${v}`);
+      log(`dequeue()`);
       render();
     }
 
@@ -127,10 +127,10 @@
 
     function front(){
       if(state.arr.length===0){
-        log('front: Queue ist leer');
+        log('front: null');
         return;
       }
-      log(`front → ${state.arr[0]}`);
+      log(`front: ${state.arr[0]}`);
     }
 
     function animateNew(){
