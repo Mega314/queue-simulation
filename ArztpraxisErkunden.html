@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arztpraxis – Queue Simulation</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #111827; --muted: #94a3b8; --text: #e5e7eb; --accent: #22c55e; --warn: #f59e0b; --danger: #ef4444; --soft: #1f2937; --border: #374151;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    a{color:inherit}
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    h1{font-size:28px;margin:0 0 4px}
+    h2{margin:0 0 8px}
+    .sub{color:var(--muted)}
+
+    /* Nav */
+    .nav{display:flex;gap:8px;align-items:center;margin:8px 0 16px}
+    .tab{padding:8px 12px;border:1px solid var(--border);border-radius:12px;background:var(--card);cursor:pointer;font-size:14px;display:none}
+    .tab.active{outline:2px solid var(--accent)}
+    .spacer{flex:1}
+    .btn{padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--soft);cursor:pointer}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    /* Layout */
+    .grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 8px 20px rgb(0 0 0 / 0.35)}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    label{font-size:12px;color:var(--muted)}
+    input,button,textarea{border-radius:12px;border:1px solid var(--border);background:var(--soft);color:var(--text)}
+    input{padding:10px 12px}
+    button{padding:10px 14px;cursor:pointer;border:1px solid transparent}
+    button.primary{background:var(--accent);color:#052e16}
+    button.warn{background:var(--warn);color:#1f1300}
+    button.danger{background:var(--danger)}
+    button.ghost{background:transparent;border-color:var(--border)}
+    textarea{width:100%;min-height:60px;padding:10px;resize:vertical}
+
+    .queue{display:flex;gap:10px;align-items:flex-end;min-height:96px;padding:12px;border:1px dashed var(--border);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))}
+    .box{position:relative;min-width:92px;max-width:140px;flex:0 0 auto;padding:10px 12px;border:1px solid var(--border);background:#0b1220;border-radius:14px;text-align:center;transition:transform .28s ease, opacity .28s ease}
+    .box.new{transform:translateY(-6px)}
+    .badge{position:absolute;top:-10px;left:-10px;background:var(--soft);border:1px solid var(--border);color:var(--muted);font-size:10px;padding:2px 6px;border-radius:999px}
+    .marker{font-size:12px;color:var(--muted);margin:0 6px}
+
+    .log{height:180px;overflow:auto;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace;font-size:12px}
+    .log p{margin:4px 0}
+
+    .intro{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;text-wrap:pretty}
+    .muted{color:var(--muted)}
+
+    @media (max-width: 900px){ .grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Warteschlange in der Arztpraxis</h1>
+
+    <div class="nav">
+      <div class="tab active" data-page="0" style="display:block">Titelseite</div>
+      <div class="tab" data-page="1">Aufgabe 1</div>
+      <div class="tab" data-page="2">Aufgabe 2</div>
+      <div class="spacer"></div>
+      <button class="btn" id="prevBtn">Zurück</button>
+      <button class="btn" id="nextBtn">Weiter</button>
+    </div>
+
+    <!-- Titelseite -->
+    <section id="page0" class="intro">
+      <h2>Auftrag</h2>
+      <p>Die <strong>Firma PraxisSoft GmbH</strong> beauftragt eure Entwicklungsgruppe: Ihr sollt ein Programm entwerfen, das Patienten in einer Arztpraxis fair verwaltet. Dazu wurde euch eine <strong>Simulation</strong> bereitgestellt. Eure Aufgabe ist es, aus der Simulation die <strong>Eigenschaften der Datenstruktur</strong> herauszuarbeiten, die man für so ein System braucht.</p>
+      <p class="muted">Klickt auf <em>Weiter</em>, um mit Aufgabe 1 und der Simulation zu starten.</p>
+    </section>
+
+    <!-- Arbeitsseiten: links Simulation, rechts Aufgaben  -->
+    <section id="work" style="display:none">
+      <div class="grid">
+        <!-- Linke Spalte: Simulation (einmalig, bleibt über Seiten bestehen) -->
+        <div class="card">
+          <h3>Warteschlange</h3>
+          <div class="queue" id="queue"></div>
+          <div style="height:10px"></div>
+
+          <div class="row">
+            <input id="itemInput" placeholder="Neuer Patient" style="flex:1" />
+            <button class="primary" id="addBtn">enqueue</button>
+            <button class="danger" id="deqBtn">dequeue</button>
+            <button id="frontBtn" class="ghost">front</button>
+            <button id="emptyBtn" class="ghost">isEmpty</button>
+          </div>
+
+          <div style="height:12px"></div>
+          <div class="log" id="log" aria-live="polite"></div>
+        </div>
+
+        <!-- Rechte Spalte: Wechselt je nach Seite -->
+        <div class="card" id="tasksContainer"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const firstNames = ["Anna","Ben","Clara","David","Emma","Felix","Greta","Henry","Isabel","Jonas","Klara","Leo","Mia","Noah","Olivia","Paul","Quentin","Rosa","Samuel","Tina","Uwe","Valerie","William","Xenia","Yara","Zoe","Anton","Berta","Chris","Diana"];
+    const lastNames  = ["Müller","Schmidt","Schneider","Fischer","Weber","Meyer","Wagner","Becker","Hoffmann","Schäfer","Koch","Bauer","Richter","Klein","Wolf","Schröder","Neumann","Schwarz","Zimmermann","Braun","Krüger","Hofmann","Hartmann","Lange","Schmitt","Werner","Krause","Meier","Lehmann","Schmid"];
+
+    const state = { arr: [], notes: { 1: "", 2: "" } };
+    const $ = sel => document.querySelector(sel);
+    const logEl = $('#log');
+    function log(msg){ const p=document.createElement('p'); const t=new Date().toLocaleTimeString(); p.textContent=`[${t}] ${msg}`; logEl.appendChild(p); logEl.scrollTop=logEl.scrollHeight; }
+
+    function render(){ const q=$('#queue'); q.innerHTML=''; if(state.arr.length===0){ q.innerHTML='<span class="small">Kein Patient in der Warteschlange<\/span>'; } else { state.arr.forEach((val,i)=>{ const div=document.createElement('div'); div.className='box'; div.innerHTML=`<div class="badge">${i===0?'H':'#'+(i+1)}</div>${val}`; q.appendChild(div); }); const marker=document.createElement('span'); marker.className='marker'; marker.textContent='[T]'; q.appendChild(marker);} }
+    function randomPatient(){ const first=firstNames[Math.floor(Math.random()*firstNames.length)]; const last=lastNames[Math.floor(Math.random()*lastNames.length)]; return `${first} ${last}`; }
+    function enqueue(val){ const v=(val && val.trim()) || randomPatient(); state.arr.push(v); log(`enqueue: ${v}`); render(); animateNew(); }
+    function dequeue(){ if(state.arr.length===0){ log('⚠️ Unterlauf: Queue ist leer.'); return; } const v=state.arr.shift(); log(`dequeue → ${v}`); render(); }
+    function isEmpty(){ log(state.arr.length===0 ? 'isEmpty: true' : 'isEmpty: false'); }
+    function front(){ if(state.arr.length===0){ log('front: Queue ist leer'); return; } log(`front → ${state.arr[0]}`); }
+    function animateNew(){ const q=$('#queue'); const boxes=q.querySelectorAll('.box'); const last=boxes[boxes.length-1]; if(last){ last.classList.add('new'); setTimeout(()=> last.classList.remove('new'), 280); } }
+
+    $('#addBtn').onclick = () => enqueue($('#itemInput').value);
+    $('#deqBtn').onclick = () => dequeue();
+    $('#emptyBtn').onclick = () => isEmpty();
+    $('#frontBtn').onclick = () => front();
+
+    let seeded=false; function ensureSeed(){ if(!seeded){ for(let i=0;i<3;i++) enqueue(); seeded=true; } }
+
+    const pages = [
+      { key: 0, title:'Titelseite' },
+      { key: 1, title:'Aufgabe 1', html: `
+          <h3 style="margin-top:0">Aufgabe 1: Funktionen der Knöpfe</h3>
+          <ol>
+            <li>
+              Beschreibe die Funktion von <code>enqueue</code> und erkläre, wie sich die Datenstruktur verändert. Erkläre auch, warum das Textfeld ("Neuer Patient") notwendig ist, damit der Knopf funktioniert.
+              <textarea style="width:100%;min-height:3em"></textarea>
+            </li>
+            <li>
+              Beschreibe die Funktion von <code>dequeue</code> und erkläre, wie sich die Datenstruktur verändert.
+              <textarea style="width:100%;min-height:3em"></textarea>
+            </li>
+            <li>
+              Beschreibe die Funktion von <code>front</code> und erkläre, wie sich die Datenstruktur dadurch zeigt.
+              <textarea style="width:100%;min-height:3em"></textarea>
+            </li>
+            <li>
+              Beschreibe die Funktion von <code>isEmpty</code> und erkläre, in welchen Situationen diese Abfrage sinnvoll ist.
+              <textarea style="width:100%;min-height:3em"></textarea>
+            </li>
+          </ol>
+        ` },
+      { key: 2, title:'Aufgabe 2', html: `
+          <h3 style="margin-top:0">Aufgabe 2: Methoden in ganzen Sätzen</h3>
+          <p>Formuliert für jede Operation einen Satz, der ihre Wirkung beschreibt:</p>
+          <ul>
+            <li><code>enqueue(x)</code>: …</li>
+            <li><code>dequeue()</code>: …</li>
+            <li><code>isEmpty()</code>: …</li>
+            <li><code>front()</code>: …</li>
+          </ul>
+          <p>Optional: Skizziert die Queue <strong>auf Papier</strong> (Kästchen, Head/Tail) und zeigt, wie sich die Elemente nach 3× enqueue und 2× dequeue verändern.</p>
+          <label>Notizen</label>
+          <textarea id="notes2" placeholder="Eure Sätze/Skizzenhinweise…"></textarea>
+          <div class="row" style="justify-content:flex-end"><button id="copyNotes2" class="ghost">Notizen kopieren</button></div>
+        ` }
+    ];
+
+    let cur=0;
+
+    function setActiveTab(){
+      document.querySelectorAll('.tab').forEach(t=>{
+        const pageKey = Number(t.dataset.page);
+        const unlockPage2 = (state.notes[1] && state.notes[1].trim().length>0);
+        if(pageKey===0 || pageKey===1 || (pageKey===2 && unlockPage2)){
+          t.style.display='block';
+        } else {
+          t.style.display='none';
+        }
+        t.classList.toggle('active', pageKey===cur);
+      });
+      updateNextDisabled();
+    }
+
+    function bindNotes(pageKey){
+      if(pageKey===1){
+        // hier keine Notes-Speicherung für einzelne Unteraufgaben nötig
+      } else if(pageKey===2){
+        const ta = document.getElementById('notes2');
+        const btn = document.getElementById('copyNotes2');
+        if(ta){ ta.value = state.notes[2] || ''; ta.addEventListener('input', ()=>{ state.notes[2]=ta.value; }); }
+        if(btn){ btn.onclick = ()=>{ if(!ta || !ta.value.trim()) return; navigator.clipboard.writeText(ta.value); }; }
+      }
+      updateNextDisabled();
+    }
+
+    function showPage(i){
+      cur=i; 
+      setActiveTab();
+      document.getElementById('page0').style.display = (cur===0)?'block':'none';
+      document.getElementById('work').style.display = (cur===0)?'none':'block';
+      if(cur!==0){
+        ensureSeed();
+        const t=pages.find(p=>p.key===cur);
+        document.getElementById('tasksContainer').innerHTML = t?.html || '<p>Keine Aufgabe definiert.</p>';
+        bindNotes(cur);
+      }
+    }
+
+    document.getElementById('prevBtn').onclick = ()=> showPage(Math.max(0, cur-1));
+    document.getElementById('nextBtn').onclick = ()=> {
+      if(cur===0){
+        showPage(1);
+        return;
+      }
+      if(cur===1){
+        // kein spezielles Notizenfeld, also direkt weiter
+        showPage(2);
+        return;
+      }
+      showPage(Math.min(pages.length-1, cur+1));
+    };
+
+    function updateNextDisabled(){
+      const next = document.getElementById('nextBtn');
+      if(cur===1){
+        next.disabled = false;
+      } else {
+        next.disabled = false;
+      }
+    }
+
+    showPage(0);
+  </script>
+  <footer style="margin:20px auto;text-align:center;font-size:12px;color:#888">Erstellt von Meikel Pfeiffer – Alle Rechte an diesem Programm liegen bei ihm.</footer>
+</body>
+</html>
